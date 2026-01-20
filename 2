@@ -1,0 +1,95 @@
+#include <windows.h>
+#include <iostream>
+
+using namespace std;
+
+int* arr;          // Указатель на исходный массив
+int* resultArr;    // Указатель на результат
+int siz;           // Размер исходного массива
+int resultSize;    // Размер результирующего массива
+
+// Функция вспомогательного потока (удаление нечетных элементов)
+DWORD WINAPI Helper(LPVOID)
+{
+    cout << "Thread Helper started (removing odd numbers)" << endl;
+
+    // Сначала подсчитаем количество четных элементов
+    int evenCount = 0;
+    for (int i = 0; i < siz; i++) {
+        if (arr[i] % 2 == 0) {  // Проверяем на четность
+            evenCount++;
+        }
+    }
+
+    // Выделяем память для результата
+    resultSize = evenCount;
+    resultArr = new int[resultSize];
+
+    // Копируем четные элементы в новый массив
+    int index = 0;
+    for (int i = 0; i < siz; i++) {
+        if (arr[i] % 2 == 0) {
+            resultArr[index] = arr[i];
+            index++;
+        }
+    }
+
+    cout << "Thread Helper finished" << endl;
+    return 0;
+}
+
+int main()
+{
+    cout << "Enter array size: ";
+    cin >> siz;
+
+    // Выделяем память для массива
+    arr = new int[siz];
+
+    // Заполняем массив
+    cout << "Enter " << siz << " elements: ";
+    for (int i = 0; i < siz; i++) {
+        cin >> arr[i];
+    }
+
+    // Выводим исходный массив
+    cout << "Original array: ";
+    for (int i = 0; i < siz; i++) {
+        cout << arr[i] << " ";
+    }
+    cout << endl;
+
+    // Создаем поток для обработки
+    HANDLE hThread = CreateThread(NULL, 0, Helper, NULL, 0, NULL);
+    if (hThread == NULL) {
+        cout << "Error creating thread!" << endl;
+        delete[] arr;
+        return 1;
+    }
+
+    // Ждем завершения потока
+    WaitForSingleObject(hThread, INFINITE);
+
+    // Закрываем дескриптор потока
+    CloseHandle(hThread);
+
+    // Выводим результат работы потока helper
+    cout << "Array after removing odd numbers: ";
+    if (resultSize > 0) {
+        for (int i = 0; i < resultSize; i++) {
+            cout << resultArr[i] << " ";
+        }
+        cout << endl;
+    }
+    else {
+        cout << "(no even elements)" << endl;
+    }
+
+    cout << "Result array size: " << resultSize << endl;
+
+    // Освобождаем память
+    delete[] arr;
+    delete[] resultArr;
+
+    return 0;
+}
